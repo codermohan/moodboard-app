@@ -1,43 +1,39 @@
-require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+require('dotenv').config();
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
+app.use(express.json());
+
+// ✅ Welcome route
 app.get('/', (req, res) => {
-  res.send(`
-    <h1>Welcome to the Moodboard App 🌈</h1>
-    <p>Choose a mood:</p>
-    <ul>
-      <li><a href="/mood/happy">Happy</a></li>
-      <li><a href="/mood/sad">Sad</a></li>
-      <li><a href="/mood/excited">Excited</a></li>
-      <li><a href="/mood/calm">Calm</a></li>
-    </ul>
-  `);
+  res.send('<h1>👋 Welcome to MoodBoard API</h1><p>Try visiting <code>/mood</code> or other endpoints.</p>');
 });
 
-app.get('/mood/:type', async (req, res) => {
-  const moodType = req.params.type;
-
+// ✅ Mood route
+app.get('/mood', async (req, res) => {
   try {
     const response = await axios.get(
-      `https://api.unsplash.com/photos/random?query=${moodType}&client_id=${UNSPLASH_ACCESS_KEY}`
+      `https://api.unsplash.com/photos/random?query=mood&client_id=${UNSPLASH_ACCESS_KEY}`
     );
-    const imageUrl = response.data.urls.regular;
-
-    res.send(`
-      <h1>${moodType.charAt(0).toUpperCase() + moodType.slice(1)} Mood</h1>
-      <img src="${imageUrl}" alt="${moodType} image" width="600" />
-      <p><a href="/">Back to Welcome</a></p>
-    `);
+    res.json({
+      image: response.data.urls.small,
+      description: response.data.alt_description,
+    });
   } catch (error) {
-    res.status(500).send("Error fetching image from Unsplash.");
+    res.status(500).json({ error: 'Error fetching image from Unsplash' });
   }
 });
 
+// ✅ Fallback route for 404
+app.use((req, res) => {
+  res.status(404).send('<h2>404 - Not Found</h2><p>This route does not exist.</p>');
+});
+
 app.listen(PORT, () => {
-  console.log(`✅ Moodboard app running at http://localhost:${PORT}`);
+  console.log(`✅ MoodBoard running at http://localhost:${PORT}`);
 });
 
