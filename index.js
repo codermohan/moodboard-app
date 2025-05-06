@@ -6,7 +6,7 @@ require('dotenv').config();
 const app = express();
 const PORT = 3000;
 
-app.get('/hello', (req, res) => {
+app.get('/', (req, res) => {
   res.send('Hello World'); // This should display "Hello World" on the browser
 });
 
