@@ -1,39 +1,55 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-require('dotenv').config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
-app.use(express.json());
-
-// ✅ Welcome route
+// Root route - Welcome Message
 app.get('/', (req, res) => {
-  res.send('<h1>👋 Welcome to MoodBoard API</h1><p>Try visiting <code>/mood</code> or other endpoints.</p>');
+  res.send(`
+    <h1>🎨 Welcome to the MoodBoard API</h1>
+    <p>Use the endpoint <code>/mood/:moodType</code> to get images based on a mood.</p>
+    <p>Example: <a href="/mood/happy">/mood/happy</a> or <a href="/mood/sad">/mood/sad</a></p>
+  `);
 });
 
-// ✅ Mood route
-app.get('/mood', async (req, res) => {
+// Dynamic mood route
+app.get('/mood/:type', async (req, res) => {
+  const mood = req.params.type;
+
   try {
-    const response = await axios.get(
-      `https://api.unsplash.com/photos/random?query=mood&client_id=${UNSPLASH_ACCESS_KEY}`
-    );
-    res.json({
-      image: response.data.urls.small,
-      description: response.data.alt_description,
+    const response = await axios.get('https://api.unsplash.com/search/photos', {
+      params: {
+        query: mood,
+        per_page: 10,
+      },
+      headers: {
+        Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}`,
+      },
     });
+
+    const images = response.data.results.map(photo => ({
+      description: photo.alt_description,
+      url: photo.urls.small,
+      photographer: photo.user.name,
+      profile: photo.user.links.html,
+    }));
+
+    res.json({
+      mood,
+      count: images.length,
+      images,
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching image from Unsplash' });
+    console.error('Error fetching images:', error.message);
+    res.status(500).json({ error: 'Failed to fetch images from Unsplash' });
   }
 });
 
-// ✅ Fallback route for 404
-app.use((req, res) => {
-  res.status(404).send('<h2>404 - Not Found</h2><p>This route does not exist.</p>');
-});
-
 app.listen(PORT, () => {
-  console.log(`✅ MoodBoard running at http://localhost:${PORT}`);
+  console.log(`MoodBoard running at http://localhost:${PORT}`);
 });
 
