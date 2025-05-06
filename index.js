@@ -1,32 +1,43 @@
-// index.js
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
-require('dotenv').config();
-
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
 app.get('/', (req, res) => {
-  res.send('Hello World'); // This should display "Hello World" on the browser
+  res.send(`
+    <h1>Welcome to the Moodboard App 🌈</h1>
+    <p>Choose a mood:</p>
+    <ul>
+      <li><a href="/mood/happy">Happy</a></li>
+      <li><a href="/mood/sad">Sad</a></li>
+      <li><a href="/mood/excited">Excited</a></li>
+      <li><a href="/mood/calm">Calm</a></li>
+    </ul>
+  `);
 });
 
+app.get('/mood/:type', async (req, res) => {
+  const moodType = req.params.type;
 
-app.get('/mood', async (req, res) => {
-    const query = req.query.query || 'calm';
-    try {
-        const response = await axios.get('https://api.unsplash.com/search/photos', {
-            params: { query, per_page: 5 },
-            headers: { Authorization: `Client-ID ${process.env.UNSPLASH_KEY}` }
-        });
+  try {
+    const response = await axios.get(
+      `https://api.unsplash.com/photos/random?query=${moodType}&client_id=${UNSPLASH_ACCESS_KEY}`
+    );
+    const imageUrl = response.data.urls.regular;
 
-        const urls = response.data.results.map(img => img.urls.small);
-        res.send(`<h2>Mood: ${query}</h2>` + urls.map(url => `<img src="${url}" style="margin:10px" />`).join(''));
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send("Error fetching images from Unsplash.");
-    }
+    res.send(`
+      <h1>${moodType.charAt(0).toUpperCase() + moodType.slice(1)} Mood</h1>
+      <img src="${imageUrl}" alt="${moodType} image" width="600" />
+      <p><a href="/">Back to Welcome</a></p>
+    `);
+  } catch (error) {
+    res.status(500).send("Error fetching image from Unsplash.");
+  }
 });
 
 app.listen(PORT, () => {
-    console.log(`MoodBoard running at http://localhost:${PORT}`);
+  console.log(`✅ Moodboard app running at http://localhost:${PORT}`);
 });
+
